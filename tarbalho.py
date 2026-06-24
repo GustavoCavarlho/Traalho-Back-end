@@ -1,179 +1,98 @@
-import pygame
 import random
 
-pygame.init()
+# ---------------------------
+# CARTAS
+# ---------------------------
+cartas = [
+    {"nome": "Espada Sombria", "dano": 25, "cura": 0, "defesa": 0},
+    {"nome": "Bola de Fogo", "dano": 30, "cura": 0, "defesa": 0},
+    {"nome": "Cura Divina", "dano": 0, "cura": 20, "defesa": 0},
+    {"nome": "Escudo Mágico", "dano": 0, "cura": 0, "defesa": 20},
+    {"nome": "Flecha Rápida", "dano": 15, "cura": 0, "defesa": 0},
+]
 
-WIDTH, HEIGHT = 900, 400
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Mini Clash Royale (Pygame)")
-
-font = pygame.font.SysFont(None, 24)
-clock = pygame.time.Clock()
-
-# -----------------------
-# CARDS
-# -----------------------
-CARDS = {
-    "soldado": {"hp": 5, "atk": 1, "color": (0, 200, 0)},
-    "arqueiro": {"hp": 3, "atk": 2, "color": (0, 150, 255)},
-    "gigante": {"hp": 10, "atk": 3, "color": (200, 100, 0)},
+# ---------------------------
+# JOGADOR E INIMIGO
+# ---------------------------
+jogador = {
+    "vida": 100,
+    "defesa": 0
 }
 
-# -----------------------
-# UNIT
-# -----------------------
-class Unit:
-    def __init__(self, name, x, y, owner):
-        self.name = name
-        self.hp = CARDS[name]["hp"]
-        self.atk = CARDS[name]["atk"]
-        self.color = CARDS[name]["color"]
-        self.x = x
-        self.y = y
-        self.owner = owner
-        self.speed = 1 if owner == "player" else -1
-        self.cooldown = 0
+inimigo = {
+    "vida": 100,
+    "defesa": 0
+}
 
-    def update(self):
-        self.x += self.speed
-        if self.cooldown > 0:
-            self.cooldown -= 1
 
-    def draw(self, surf):
-        pygame.draw.rect(surf, self.color, (self.x, self.y, 20, 20))
-        hp_text = font.render(str(self.hp), True, (255, 255, 255))
-        surf.blit(hp_text, (self.x, self.y - 10))
+# FUNÇÕES
 
-# -----------------------
-# GAME STATE
-# -----------------------
-player_units = []
-enemy_units = []
+def comprar_carta():
+    return random.choice(cartas)
 
-player_hp = 20
-enemy_hp = 20
+def aplicar_carta(atacante, defensor, carta):
+    print(f"\n🔥 Usou: {carta['nome']}")
 
-deck = ["soldado", "arqueiro"]
-message = ""
+    # dano
+    if carta["dano"] > 0:
+        dano_final = max(0, carta["dano"] - defensor["defesa"])
+        defensor["vida"] -= dano_final
+        print(f"⚔️ Dano causado: {dano_final}")
 
-# -----------------------
-# SPAWN
-# -----------------------
-def spawn(card, owner):
-    if owner == "player":
-        player_units.append(Unit(card, 50, 300, "player"))
-    else:
-        enemy_units.append(Unit(card, 820, 100, "enemy"))
+    # cura
+    if carta["cura"] > 0:
+        atacante["vida"] += carta["cura"]
+        print(f"💚 Cura: {carta['cura']}")
 
-# -----------------------
-# CHEST
-# -----------------------
-def open_chest():
-    global message
-    reward = random.choice(list(CARDS.keys()))
-    deck.append(reward)
-    message = f"Você ganhou {reward.upper()}!"
+    # defesa temporária
+    if carta["defesa"] > 0:
+        atacante["defesa"] = carta["defesa"]
+        print(f"🛡️ Defesa aumentada: {carta['defesa']}")
 
-# -----------------------
-# COMBAT (CORRIGIDO)
-# -----------------------
-def combat():
-    global player_hp, enemy_hp
+def mostrar_status():
+    print("\n======================")
+    print(f"👤 Jogador: {jogador['vida']} HP | Defesa: {jogador['defesa']}")
+    print(f"👾 Inimigo: {inimigo['vida']} HP | Defesa: {inimigo['defesa']}")
+    print("======================\n")
 
-    for p in player_units:
-        for e in enemy_units:
-            if abs(p.x - e.x) < 20:
 
-                if p.cooldown == 0:
-                    e.hp -= p.atk
-                    p.cooldown = 30
+# LOOP 
+print("🎴 RPG DE CARTAS INICIADO!\n")
 
-                if e.cooldown == 0:
-                    p.hp -= e.atk
-                    e.cooldown = 30
+while jogador["vida"] > 0 and inimigo["vida"] > 0:
 
-    # remove mortos com segurança
-    player_units[:] = [u for u in player_units if u.hp > 0]
-    enemy_units[:] = [u for u in enemy_units if u.hp > 0]
+    mostrar_status()
 
-# -----------------------
-# Desenho
-# -----------------------
-def draw():
-    screen.fill((30, 30, 30))
+    carta1 = comprar_carta()
+    carta2 = comprar_carta()
+    carta3 = comprar_carta()
 
-    pygame.draw.line(screen, (255, 255, 255), (0, 200), (900, 200), 2)
+    mao = [carta1, carta2, carta3]
 
-    pygame.draw.rect(screen, (0, 255, 0), (20, 250, 40, 100))
-    pygame.draw.rect(screen, (255, 0, 0), (840, 50, 40, 100))
+    print("Suas cartas:")
+    for i, c in enumerate(mao):
+        print(f"{i+1} - {c['nome']} (ATQ:{c['dano']} CURA:{c['cura']} DEF:{c['defesa']})")
 
-    p_hp = font.render(f"PLAYER HP: {player_hp}", True, (255, 255, 255))
-    e_hp = font.render(f"ENEMY HP: {enemy_hp}", True, (255, 255, 255))
-    screen.blit(p_hp, (20, 20))
-    screen.blit(e_hp, (650, 20))
+    escolha = int(input("\nEscolha uma carta (1-3): ")) - 1
+    escolha = max(0, min(escolha, 2))
 
-    msg = font.render(message, True, (255, 255, 0))
-    screen.blit(msg, (300, 20))
+    aplicar_carta(jogador, inimigo, mao[escolha])
 
-    for u in player_units + enemy_units:
-        u.draw(screen)
+    # reset defesa após turno
+    jogador["defesa"] = 0
 
-    pygame.display.update()
+    # turno inimigo (IA simples)
+    carta_inimigo = comprar_carta()
+    aplicar_carta(inimigo, jogador, carta_inimigo)
 
-# -----------------------
-# LOOP
-# -----------------------
-running = True
-frame = 0
+    inimigo["defesa"] = 0
 
-while running:
-    clock.tick(60)
-    frame += 1
+# ---------------------------
+# FIM DO JOGO
+# ---------------------------
+print("\n🏁 FIM DE JOGO!")
 
-    if frame % 120 == 0:
-        spawn(random.choice(list(CARDS.keys())), "enemy")
-
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_ESCAPE:
-                running = False
-
-            if event.key == pygame.K_1:
-                spawn("soldado", "player")
-            if event.key == pygame.K_2:
-                spawn("arqueiro", "player")
-            if event.key == pygame.K_3:
-                spawn("gigante", "player")
-
-            if event.key == pygame.K_c:
-                open_chest()
-
-    # update
-    for u in player_units:
-        u.update()
-    for u in enemy_units:
-        u.update()
-
-    combat()
-
-    # TORRES (CORRIGIDO - SEM CRASH)
-    for u in player_units[:]:
-        if u.x > 860:
-            enemy_hp -= u.atk
-            player_units.remove(u)
-
-    for u in enemy_units[:]:
-        if u.x < 20:
-            player_hp -= u.atk
-            enemy_units.remove(u)
-
-    draw()
-
-    if player_hp <= 0 or enemy_hp <= 0:
-        running = False
-
-pygame.quit()
-print("Fim de jogo!")
+if jogador["vida"] > 0:
+    print("🏆 Você venceu!")
+else:
+    print("💀 Você foi derrotado!")
